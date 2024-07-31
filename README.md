@@ -1,6 +1,6 @@
-# <h1 align="center"> Time Table Manager
+# Time Table Manager
 
-Teachers Substitution Creator is a PyQt5-based application designed to manage teacher schedules and efficiently generate substitution timetables. This project aims to streamline the process of handling teacher absences and ensuring smooth school operations.
+**Teachers Substitution Creator** is a PyQt5-based application designed to manage teacher schedules and efficiently generate substitution timetables. This project aims to streamline handling teacher absences and ensure smooth school operations.
 
 ## Features
 
@@ -16,33 +16,34 @@ Teachers Substitution Creator is a PyQt5-based application designed to manage te
 - Python 3.x
 - PyQt5
 - SQLite3
+- Reportlab (for PDF generation)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
     ```sh
     git clone https://github.com/yourusername/Teachers-Substitution-Creator.git
     cd Teachers-Substitution-Creator
     ```
 
-2. Install the required packages:
+2. **Install the required packages:**
     ```sh
-    pip install pyqt5
+    pip install pyqt5 reportlab
     ```
 
-3. Set up the database:
+3. **Set up the database:**
     ```sh
     python db_setup.py
     ```
 
 ### Usage
 
-1. Run the main application:
+1. **Run the main application:**
     ```sh
     python main.py
     ```
 
-2. Use the interface to manage teacher information, schedules, and generate substitution timetables.
+2. **Use the interface to manage teacher information, schedules, and generate substitution timetables.**
 
 ### Files
 
@@ -52,14 +53,13 @@ Teachers Substitution Creator is a PyQt5-based application designed to manage te
 - `teacher_manager.py`: Manages teacher data.
 - `schedule_manager.py`: Manages teacher schedules.
 
-
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For any inquiries or issues, please contact Jeoff George Giby at [jeoff_george_giby](https://www.instagram.com/jeoff_george_giby/)
+For any inquiries or issues, please contact Jeoff George Giby at [jeoff_george_giby](https://www.instagram.com/jeoff_george_giby/).
 
 ---
 
