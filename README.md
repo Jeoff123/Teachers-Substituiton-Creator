@@ -1,4 +1,4 @@
-# Teachers Substitution Creator
+# <h1 align="center"> Time Table Manager
 
 Teachers Substitution Creator is a PyQt5-based application designed to manage teacher schedules and efficiently generate substitution timetables. This project aims to streamline the process of handling teacher absences and ensuring smooth school operations.
 
@@ -52,9 +52,6 @@ Teachers Substitution Creator is a PyQt5-based application designed to manage te
 - `teacher_manager.py`: Manages teacher data.
 - `schedule_manager.py`: Manages teacher schedules.
 
-## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
 ## License
 
@@ -62,7 +59,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For any inquiries or issues, please contact Jeoff George Giby at jeoffgeorge@example.com.
+For any inquiries or issues, please contact Jeoff George Giby at [jeoff_george_giby](https://www.instagram.com/jeoff_george_giby/)
 
 ---
 
