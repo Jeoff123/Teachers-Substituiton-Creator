@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
 )
 from PyQt5.QtGui import QColor, QPalette, QFont
-from PyQt5.QtCore import Qt
 
 class TeacherManager(QWidget):
     def __init__(self):
@@ -122,7 +121,7 @@ class TeacherManager(QWidget):
 
         conn = sqlite3.connect('new_timetable.db')
         c = conn.cursor()
-        c.execute('INSERT INTO timetable (teacher) VALUES (?)', (teacher,))
+        c.execute('INSERT INTO timetable (teacher, day) VALUES (?, ?)', (teacher, ''))  # Default day value
         conn.commit()
         conn.close()
         self.loadData()
