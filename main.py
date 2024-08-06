@@ -272,15 +272,26 @@ class TimeTableManager(QWidget):
                 elements = []
 
                 stylesheet = getSampleStyleSheet()
-                title = Paragraph('Updated Timetable', stylesheet['Title'])
+
+                # Add absentee names at the top
+                absentee_names = [teacher for teacher, checkbox in self.checkboxes.items() if checkbox.isChecked()]
+                absentee_text = 'Absentees: ' + ', '.join(absentee_names) if absentee_names else 'No absentees'
+                absentee_paragraph = Paragraph(absentee_text, stylesheet['Normal'])
+                elements.append(absentee_paragraph)
+                elements.append(Spacer(1, 12))
+
+                # Change title
+                title = Paragraph('Today\'s Timetable', stylesheet['Title'])
                 elements.append(title)
                 elements.append(Spacer(1, 12))
 
+                # Add table
                 table_data = []
                 headers = [self.table.horizontalHeaderItem(i).text() for i in range(self.table.columnCount())]
                 table_data.append(headers)
                 for row in range(self.table.rowCount()):
-                    row_data = [self.table.item(row, col).text() if self.table.item(row, col) else '' for col in range(self.table.columnCount())]
+                    row_data = [self.table.item(row, col).text() if self.table.item(row, col) else '' for col in
+                                range(self.table.columnCount())]
                     table_data.append(row_data)
 
                 table = Table(table_data)
