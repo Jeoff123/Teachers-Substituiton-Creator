@@ -1,7 +1,7 @@
 import sys
 import sqlite3
 import random
-from datetime import datetime
+import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QCheckBox, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
     QScrollArea, QFormLayout, QComboBox, QFileDialog
@@ -154,6 +154,10 @@ class TimeTableManager(QWidget):
         self.update_table()
 
     def load_absentees(self):
+        if not os.path.exists('new_timetable.db'):
+            QMessageBox.critical(self, 'Error', 'Database file not found!')
+            return
+
         conn = sqlite3.connect('new_timetable.db')
         c = conn.cursor()
         c.execute('SELECT DISTINCT teacher FROM timetable')
@@ -182,6 +186,10 @@ class TimeTableManager(QWidget):
     def update_table(self):
         day = self.day_combo_box.currentText()
         self.load_absentees()
+        if not os.path.exists('new_timetable.db'):
+            QMessageBox.critical(self, 'Error', 'Database file not found!')
+            return
+
         conn = sqlite3.connect('new_timetable.db')
         c = conn.cursor()
         c.execute('SELECT * FROM timetable WHERE day = ?', (day,))
@@ -193,99 +201,104 @@ class TimeTableManager(QWidget):
         conn.close()
 
     def process_substitutions(self):
+        print("Process button clicked")
         day = self.day_combo_box.currentText()
         absentees = [teacher for teacher, checkbox in self.checkboxes.items() if checkbox.isChecked()]
+        print(f"Selected absentees: {absentees}")
+
         if not absentees:
             QMessageBox.warning(self, 'Error', 'Please select at least one absentee')
             return
 
         updated_tt = self.create_time_table(day, absentees)
+        print("Updated timetable:", updated_tt)
+
         self.display_updated_timetable(updated_tt)
 
     def create_time_table(self, day, absentees):
-        conn = sqlite3.connect('new_timetable.db')
-        c = conn.cursor()
+        if not os.path.exists('new_timetable.db'):
+            QMessageBox.critical(self, 'Error', 'Database file not found!')
+            return {}
 
-        c.execute('SELECT * FROM timetable WHERE day = ?', (day,))
-        rows = c.fetchall()
-        timetable = {}
-        for row in rows:
-            timetable[row[2]] = row[3:]
+        try:
+            conn = sqlite3.connect('new_timetable.db')
+            c = conn.cursor()
 
-        presentees = {teacher for teacher in timetable if teacher not in absentees}
+            c.execute('SELECT * FROM timetable WHERE day = ?', (day,))
+            rows = c.fetchall()
+            timetable = {}
+            for row in rows:
+                timetable[row[2]] = row[3:]
 
-        periods = {i: [] for i in range(8)}
-        for teacher in presentees:
-            for i, period in enumerate(timetable[teacher]):
-                if period.upper() == 'FREE':
-                    periods[i].append(teacher)
+            presentees = {teacher for teacher in timetable if teacher not in absentees}
 
-        for teacher in absentees:
-            if teacher in timetable:
+            periods = {i: [] for i in range(8)}
+            for teacher in presentees:
                 for i, period in enumerate(timetable[teacher]):
-                    if period.upper() != 'FREE' and periods[i]:
-                        replacement_teacher = random.choice(periods[i])
-                        timetable[replacement_teacher] = (
-                            timetable[replacement_teacher][:i] + (period,) + timetable[replacement_teacher][i + 1:]
-                        )
-                del timetable[teacher]
+                    if period.upper() == 'FREE':
+                        periods[i].append(teacher)
 
-        conn.close()
-        return timetable
+            for teacher in absentees:
+                if teacher in timetable:
+                    for i, period in enumerate(timetable[teacher]):
+                        if period.upper() != 'FREE' and periods[i]:
+                            replacement_teacher = random.choice(periods[i])
+                            timetable[replacement_teacher] = (
+                                timetable[replacement_teacher][:i] + (period,) + timetable[replacement_teacher][i + 1:]
+                            )
+                    del timetable[teacher]
+
+            conn.close()
+            return timetable
+        except Exception as e:
+            print(f"An error occurred in create_time_table: {e}")
+            QMessageBox.critical(self, 'Error', f'An error occurred: {e}')
+            return {}
 
     def display_updated_timetable(self, updated_tt):
         self.table.setRowCount(len(updated_tt))
         row_num = 0
         for teacher, periods in updated_tt.items():
-            row_data = [None] * 11
-            row_data[1] = self.day_combo_box.currentText()
-            row_data[2] = teacher
-            row_data[3:11] = periods
+            row_data = [row_num + 1, self.day_combo_box.currentText(), teacher] + list(periods)
             for col_num, col_data in enumerate(row_data):
                 self.table.setItem(row_num, col_num, QTableWidgetItem(str(col_data)))
             row_num += 1
 
-        self.table.setVerticalHeaderLabels([
-            f'{self.day_combo_box.currentText()} - Absentees: {", ".join([teacher for teacher, checkbox in self.checkboxes.items() if checkbox.isChecked()])}'
-        ] * len(updated_tt))
-
     def save_timetable_as_pdf(self):
-        absentees = [teacher for teacher, checkbox in self.checkboxes.items() if checkbox.isChecked()]
-        absentees_str = ', '.join(absentees)
+        try:
+            file_name, _ = QFileDialog.getSaveFileName(self, 'Save PDF', '', 'PDF Files (*.pdf)')
+            if file_name:
+                doc = SimpleDocTemplate(file_name, pagesize=letter)
+                elements = []
 
-        data = [['ID', 'Day', 'Teacher', 'Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6', 'Period 7', 'Period 8']]
-        for row_num in range(self.table.rowCount()):
-            row_data = [self.table.item(row_num, col_num).text() if self.table.item(row_num, col_num) else '' for col_num in range(self.table.columnCount())]
-            data.append(row_data)
+                stylesheet = getSampleStyleSheet()
+                title = Paragraph('Updated Timetable', stylesheet['Title'])
+                elements.append(title)
+                elements.append(Spacer(1, 12))
 
-        filename, _ = QFileDialog.getSaveFileName(self, 'Save PDF', '', 'PDF Files (*.pdf)')
-        if not filename:
-            return
+                table_data = []
+                headers = [self.table.horizontalHeaderItem(i).text() for i in range(self.table.columnCount())]
+                table_data.append(headers)
+                for row in range(self.table.rowCount()):
+                    row_data = [self.table.item(row, col).text() if self.table.item(row, col) else '' for col in range(self.table.columnCount())]
+                    table_data.append(row_data)
 
-        doc = SimpleDocTemplate(filename, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = []
-
-        title = Paragraph('Timetable Report', styles['Title'])
-        story.append(title)
-        story.append(Spacer(1, 12))
-        story.append(Paragraph(f'Absentees: {absentees_str}', styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        story.append(table)
-
-        doc.build(story)
-        QMessageBox.information(self, 'PDF Saved', 'Timetable PDF has been saved successfully.')
+                table = Table(table_data)
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ]))
+                elements.append(table)
+                doc.build(elements)
+                QMessageBox.information(self, 'Success', 'PDF saved successfully!')
+        except Exception as e:
+            print(f"An error occurred while saving the PDF: {e}")
+            QMessageBox.critical(self, 'Error', f'An error occurred while saving the PDF: {e}')
 
     def open_schedule_manager(self):
         if self.schedule_manager is None:
@@ -300,6 +313,6 @@ class TimeTableManager(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    main_window = TimeTableManager()
-    main_window.show()
+    main_win = TimeTableManager()
+    main_win.show()
     sys.exit(app.exec_())
