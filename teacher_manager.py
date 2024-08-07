@@ -1,7 +1,7 @@
 import sys
 import sqlite3
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
+    QApplication, QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QLineEdit
 )
 from PyQt5.QtGui import QColor, QPalette, QFont
 
@@ -30,19 +30,11 @@ class TeacherManager(QWidget):
         # Main layout
         mainLayout = QVBoxLayout()
 
-        # Form layout for teacher input
-        formLayout = QFormLayout()
-        self.teacherInput = QLineEdit()
-        formLayout.addRow('Teacher Name:', self.teacherInput)
-
-        # Buttons for add, update, delete operations
-        buttonLayout = QVBoxLayout()
+        # Input box and button for adding a new teacher
+        inputLayout = QVBoxLayout()
+        self.teacherNameInput = QLineEdit()
+        self.teacherNameInput.setPlaceholderText('Enter teacher name...')
         self.addButton = QPushButton('Add Teacher')
-        self.updateButton = QPushButton('Update Teacher')
-        self.deleteButton = QPushButton('Delete Teacher')
-        buttonLayout.addWidget(self.addButton)
-        buttonLayout.addWidget(self.updateButton)
-        buttonLayout.addWidget(self.deleteButton)
 
         # Set button styles
         button_style = """
@@ -59,6 +51,18 @@ class TeacherManager(QWidget):
             }
         """
         self.addButton.setStyleSheet(button_style)
+
+        inputLayout.addWidget(self.teacherNameInput)
+        inputLayout.addWidget(self.addButton)
+
+        # Buttons for update, delete operations
+        buttonLayout = QVBoxLayout()
+        self.updateButton = QPushButton('Update Teacher')
+        self.deleteButton = QPushButton('Delete Teacher')
+        buttonLayout.addWidget(self.updateButton)
+        buttonLayout.addWidget(self.deleteButton)
+
+        # Set button styles
         self.updateButton.setStyleSheet(button_style)
         self.deleteButton.setStyleSheet(button_style)
 
@@ -87,17 +91,22 @@ class TeacherManager(QWidget):
         self.table.setFont(QFont('Arial', 12))
 
         # Add widgets to layout
-        mainLayout.addLayout(formLayout)
+        mainLayout.addLayout(inputLayout)
         mainLayout.addLayout(buttonLayout)
         mainLayout.addWidget(self.table)
 
         self.setLayout(mainLayout)
 
         # Connect buttons to functions
-        self.addButton.clicked.connect(self.addTeacher)
         self.updateButton.clicked.connect(self.updateTeacher)
         self.deleteButton.clicked.connect(self.deleteTeacher)
+        self.addButton.clicked.connect(self.addTeacher)
         self.table.cellClicked.connect(self.loadRecord)
+
+        # Initialize button states
+        self.updateButton.setEnabled(False)
+        self.deleteButton.setEnabled(False)
+        self.addButton.setEnabled(True)
 
         # Load data from the database
         self.loadData()
@@ -113,20 +122,6 @@ class TeacherManager(QWidget):
         for row_num, row_data in enumerate(rows):
             self.table.setItem(row_num, 0, QTableWidgetItem(row_data[0]))
 
-    def addTeacher(self):
-        teacher = self.teacherInput.text()
-        if not teacher:
-            QMessageBox.warning(self, 'Error', 'Teacher name cannot be empty')
-            return
-
-        conn = sqlite3.connect('new_timetable.db')
-        c = conn.cursor()
-        c.execute('INSERT INTO timetable (teacher, day) VALUES (?, ?)', (teacher, ''))  # Default day value
-        conn.commit()
-        conn.close()
-        self.loadData()
-        self.clearInputs()
-
     def updateTeacher(self):
         currentRow = self.table.currentRow()
         if currentRow < 0:
@@ -134,18 +129,17 @@ class TeacherManager(QWidget):
             return
 
         old_teacher = self.table.item(currentRow, 0).text()
-        new_teacher = self.teacherInput.text()
-        if not new_teacher:
+        new_teacher = self.teacherNameInput.text().strip()
+        if new_teacher:
+            conn = sqlite3.connect('new_timetable.db')
+            c = conn.cursor()
+            c.execute('UPDATE timetable SET teacher = ? WHERE teacher = ?', (new_teacher, old_teacher))
+            conn.commit()
+            conn.close()
+            self.loadData()
+            self.resetInput()
+        else:
             QMessageBox.warning(self, 'Error', 'Teacher name cannot be empty')
-            return
-
-        conn = sqlite3.connect('new_timetable.db')
-        c = conn.cursor()
-        c.execute('UPDATE timetable SET teacher = ? WHERE teacher = ?', (new_teacher, old_teacher))
-        conn.commit()
-        conn.close()
-        self.loadData()
-        self.clearInputs()
 
     def deleteTeacher(self):
         currentRow = self.table.currentRow()
@@ -160,13 +154,40 @@ class TeacherManager(QWidget):
         conn.commit()
         conn.close()
         self.loadData()
-        self.clearInputs()
+        self.resetInput()
+
+    def addTeacher(self):
+        teacher_name = self.teacherNameInput.text().strip()
+        if teacher_name:
+            conn = sqlite3.connect('new_timetable.db')
+            c = conn.cursor()
+            # Insert teacher and set all periods to "None" for each workday
+            workdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+            periods = ['None'] * 8
+            for day in workdays:
+                c.execute(
+                    'INSERT INTO timetable (teacher, day, period1, period2, period3, period4, period5, period6, period7, period8) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (teacher_name, day, *periods)
+                )
+            conn.commit()
+            conn.close()
+            self.teacherNameInput.clear()
+            self.loadData()
+        else:
+            QMessageBox.warning(self, 'Error', 'Teacher name cannot be empty')
 
     def loadRecord(self, row, column):
-        self.teacherInput.setText(self.table.item(row, column).text())
+        teacher_name = self.table.item(row, column).text()
+        self.teacherNameInput.setText(teacher_name)
+        self.updateButton.setEnabled(True)
+        self.deleteButton.setEnabled(True)
+        self.addButton.setEnabled(False)
 
-    def clearInputs(self):
-        self.teacherInput.clear()
+    def resetInput(self):
+        self.teacherNameInput.clear()
+        self.updateButton.setEnabled(False)
+        self.deleteButton.setEnabled(False)
+        self.addButton.setEnabled(True)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
