@@ -39,9 +39,10 @@ class ScheduleManager(QWidget):
         # Form layout for schedule input
         formLayout = QFormLayout()
 
-        # Dropdown for teacher names
-        self.teacherComboBox = QComboBox()
-        formLayout.addRow('Teacher Name:', self.teacherComboBox)
+        # Uneditable text box for teacher name
+        self.teacherLineEdit = QLineEdit()
+        self.teacherLineEdit.setReadOnly(True)
+        formLayout.addRow('Teacher Name:', self.teacherLineEdit)
 
         # Period inputs
         self.periodInputs = []
@@ -116,17 +117,7 @@ class ScheduleManager(QWidget):
         self.dayComboBox.currentIndexChanged.connect(self.loadData)
 
         # Load data from the database
-        self.loadTeachers()
         self.loadData()
-
-    def loadTeachers(self):
-        conn = sqlite3.connect('new_timetable.db')
-        c = conn.cursor()
-        c.execute('SELECT DISTINCT teacher FROM timetable')
-        rows = c.fetchall()
-        conn.close()
-
-        self.teacherComboBox.addItems([row[0] for row in rows])
 
     def loadData(self):
         day = self.dayComboBox.currentText()
@@ -143,7 +134,7 @@ class ScheduleManager(QWidget):
 
     def addSchedule(self):
         day = self.dayComboBox.currentText()
-        teacher = self.teacherComboBox.currentText()
+        teacher = self.teacherLineEdit.text()
         periods = [input.text() for input in self.periodInputs]
         if not day or not teacher or any(not period for period in periods):
             QMessageBox.warning(self, 'Error', 'All fields must be filled')
@@ -166,7 +157,7 @@ class ScheduleManager(QWidget):
 
         id_ = self.table.item(currentRow, 0).text()
         day = self.dayComboBox.currentText()
-        teacher = self.teacherComboBox.currentText()
+        teacher = self.teacherLineEdit.text()
         periods = [input.text() for input in self.periodInputs]
         if not day or not teacher or any(not period for period in periods):
             QMessageBox.warning(self, 'Error', 'All fields must be filled')
@@ -200,13 +191,13 @@ class ScheduleManager(QWidget):
         day = self.table.item(row, 1).text()
         teacher = self.table.item(row, 2).text()
         self.dayComboBox.setCurrentText(day)
-        self.teacherComboBox.setCurrentText(teacher)
+        self.teacherLineEdit.setText(teacher)
         for i in range(8):
             self.periodInputs[i].setText(self.table.item(row, i + 3).text())
 
     def clearInputs(self):
         self.dayComboBox.setCurrentIndex(0)
-        self.teacherComboBox.setCurrentIndex(-1)
+        self.teacherLineEdit.clear()
         for input in self.periodInputs:
             input.clear()
 
