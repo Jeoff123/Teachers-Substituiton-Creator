@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QScrollArea, QFormLayout, QComboBox, QFileDialog
 )
 from PyQt5.QtGui import QColor, QPalette, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -23,6 +23,7 @@ class TimeTableManager(QWidget):
         self.teacher_manager = None  # Initialize teacher_manager
         self.schedule_manager = None  # Initialize schedule_manager
         self.init_ui()
+        self.setup_timer()  # Setup the timer for automatic updates
 
     def init_ui(self):
         self.setWindowTitle('Timetable Manager')
@@ -152,6 +153,11 @@ class TimeTableManager(QWidget):
         self.setLayout(main_layout)
 
         self.update_table()
+
+    def setup_timer(self):
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_table)
+        self.timer.start(1000)  # Update every 1000 milliseconds (1 seconds)
 
     def load_absentees(self):
         if not os.path.exists('new_timetable.db'):
