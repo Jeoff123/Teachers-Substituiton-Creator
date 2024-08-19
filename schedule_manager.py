@@ -4,12 +4,17 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QFormLayout, QComboBox, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
 )
 from PyQt5.QtGui import QColor, QPalette, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 class ScheduleManager(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
+        
+        # Timer for auto-refreshing schedule data
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.loadData)
+        self.timer.start(1000)  # Refresh every 1 seconds
 
     def initUI(self):
         self.setWindowTitle('Schedule Manager')
