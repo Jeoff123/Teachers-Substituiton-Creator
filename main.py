@@ -253,6 +253,8 @@ class TimeTableManager(QWidget):
 
         self.display_updated_timetable(updated_tt)
 
+        self.timer.start(30000)
+
     def create_time_table(self, day, absentees):
         if not os.path.exists('new_timetable.db'):
             QMessageBox.critical(self, 'Error', 'Database file not found!')
